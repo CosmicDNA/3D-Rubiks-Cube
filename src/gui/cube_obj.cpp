@@ -1,4 +1,8 @@
 #include"cube_obj.hpp"
+#include <ranges>
+#include <algorithm>
+#include <execution>
+#include "gcem.hpp"
 
 glm::vec3 CoordSystem::approximate(const glm::vec3& v) {
     const float epsilon = 1e-6f;
@@ -68,7 +72,6 @@ void CubeObj::rotate(char plane, float angle, bool toRound){
 
     // rounding step
     if(toRound){
-        float signValue;
         // approximate translation
         transform.translation = glm::round(transform.translation / 0.001f) * 0.001f;
         /*
@@ -79,22 +82,21 @@ void CubeObj::rotate(char plane, float angle, bool toRound){
         }
         */
 
-        // approximate orientation
-        float rotationComponents[4] = {transform.quatRotation.w, transform.quatRotation.x, transform.quatRotation.y, transform.quatRotation.z};
-        for(int i = 0; i < 4; i++) {
-            signValue = (rotationComponents[i] > 0.0f) ? +1 : -1;
+        constexpr auto sin45 = gcem::sin(glm::radians(45.0f));
+
+        auto processComponent = [](float& rotationComponent) {
+            float signValue = (rotationComponent > 0.0f) ? +1 : -1;
             // value around 0.0f
-            if(std::abs(rotationComponents[i]) < 1e-1f) rotationComponents[i] = 0.0f;
+            if(std::abs(rotationComponent) < 1e-1f) rotationComponent = 0.0f;
             // value near +1 or -1
-            if(std::abs(rotationComponents[i]) > 0.9f) rotationComponents[i] = signValue * 1.0f;
+            if(std::abs(rotationComponent) > 0.9f) rotationComponent = signValue * 1.0f;
             // value near 0.5f or -0.5f
-            if(glm::epsilonEqual(std::abs(rotationComponents[i]), 0.5f, 0.1f)) rotationComponents[i] = signValue * 0.5f;
+            if(glm::epsilonEqual(std::abs(rotationComponent), 0.5f, 0.1f)) rotationComponent = signValue * 0.5f;
             // value around sin(45.0f)
-            if(glm::epsilonEqual(std::abs(rotationComponents[i]), 0.7f, 0.1f)) rotationComponents[i] = signValue * glm::sin(glm::radians(45.0f));
-        }
-        transform.quatRotation.w = rotationComponents[0];
-        transform.quatRotation.x = rotationComponents[1];
-        transform.quatRotation.y = rotationComponents[2];
-        transform.quatRotation.z = rotationComponents[3];
+            if(glm::epsilonEqual(std::abs(rotationComponent), 0.7f, 0.1f)) rotationComponent = signValue * sin45;
+        };
+
+        float rotationComponents[4] = {transform.quatRotation.w, transform.quatRotation.x, transform.quatRotation.y, transform.quatRotation.z};
+        std::for_each(std::execution::par, std::begin(rotationComponents), std::end(rotationComponents), processComponent);
     }
 }

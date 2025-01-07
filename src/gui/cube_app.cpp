@@ -15,7 +15,7 @@
 #include<array>
 #include<chrono>
 #include <thread>
-
+#include <ranges>
 
 CubeApp::CubeApp(){
     loadGameObjects();
@@ -183,11 +183,11 @@ void CubeApp::loadGameObjects(){
     std::vector<std::string> models;
 
     load3x3(scaler, "models/blender" ,models, translation);
-    for(int i = 0;i < models.size(); i++){
-        std::shared_ptr<Model> model = Model::createModelFromFile(device, models[i]);
+    for(const auto& [index, model] : models | std::views::enumerate){
+        std::shared_ptr<Model> the_model = Model::createModelFromFile(device, model);
         auto cube = CubeObj::createGameObject();
-        cube.model = model;
-        cube.transform.translation = translation[i];
+        cube.model = the_model;
+        cube.transform.translation = translation[index];
         cube.transform.scale = { (float) 1/scaler, (float) 1/scaler, (float) 1/scaler };
 
         gameObjects.push_back(std::move(cube));

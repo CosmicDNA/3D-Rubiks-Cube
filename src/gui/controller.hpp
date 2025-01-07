@@ -5,10 +5,22 @@
 #include"cube_gui.hpp"
 #include"../cube/Cube3.hpp"
 #include"../solver/Solver.hpp"
+#include <optional>
 
+class KeyMapData {
+    public:
+    int key;
+    bool* turn;
+    char axis;
+    char side;
+    char sign;
+};
 
 class Controller {
+private:
+    std::vector<KeyMapData> keymaps;
 public:
+    Controller();
     struct KeyMappings {
         int moveLeft = GLFW_KEY_A;
         int moveRight = GLFW_KEY_D;
@@ -65,11 +77,12 @@ public:
     float currentRotationAngle = 0.0f;
     float targetRotationAngle = 0.0f;
 
+    std::optional<KeyMapData> getMap(char side);
     void orbitAroundCube(GLFWwindow* window, float dt, CubeObj& viewerObject);
     void rotateCube(GLFWwindow* window, float dt, std::vector<CubeObj> &gameObjects);
     void solveCube();
 
-    void rotateAroundAxis(char axis, char side, int sign, float dt, std::vector<CubeObj> &gameObjects);
+    void rotateAroundAxis(KeyMapData keyMap, float dt, std::vector<CubeObj> &gameObjects);
 };
 
 #endif

@@ -5,6 +5,26 @@
 #include<glm/gtc/epsilon.hpp>
 #include<limits>
 #include<thread>
+#include <execution>
+
+    // if(animation.U_turn){ rotateAroundAxis('y','U',1,dt,gameObjects); }
+    // if(animation.D_turn){ rotateAroundAxis('y','D',-1,dt,gameObjects); }
+    // if(animation.F_turn){ rotateAroundAxis('z','F',1,dt,gameObjects); }
+    // if(animation.B_turn){ rotateAroundAxis('z','B',-1,dt,gameObjects); }
+    // if(animation.R_turn){ rotateAroundAxis('x','R',-1,dt,gameObjects); }
+    // if(animation.L_turn){ rotateAroundAxis('x','L',1,dt,gameObjects); }
+
+Controller::Controller() {
+    // Map keys to their corresponding animation flags
+    keymaps = {
+        KeyMapData(keys.u_turn, &animation.U_turn, 'y', 'U', 1),
+        KeyMapData(keys.d_turn, &animation.D_turn, 'y', 'D', -1),
+        KeyMapData(keys.f_turn, &animation.F_turn, 'z', 'F', 1),
+        KeyMapData(keys.b_turn, &animation.B_turn, 'z', 'B', -1),
+        KeyMapData(keys.r_turn, &animation.R_turn, 'x', 'R', -1),
+        KeyMapData(keys.l_turn, &animation.L_turn, 'x', 'L', 1)
+    };
+}
 
 void Controller::orbitAroundCube(GLFWwindow* window, float dt, CubeObj& viewerObject){
     glm::vec3 rotate{0};
@@ -78,78 +98,60 @@ void Controller::rotateCube(GLFWwindow* window, float dt, std::vector<CubeObj> &
                 doubleTurnKeyPressed = false;
             }
 
-            // normal rotations
-            if(glfwGetKey(window, keys.u_turn) == GLFW_PRESS && !animation.isRotating())
-                animation.U_turn = true;
-
-            if(glfwGetKey(window, keys.d_turn) == GLFW_PRESS && !animation.isRotating())
-                animation.D_turn = true;
-
-            if(glfwGetKey(window, keys.f_turn) == GLFW_PRESS && !animation.isRotating())
-                animation.F_turn = true;
-
-            if(glfwGetKey(window, keys.r_turn) == GLFW_PRESS && !animation.isRotating())
-                animation.R_turn = true;
-
-            if(glfwGetKey(window, keys.b_turn) == GLFW_PRESS && !animation.isRotating())
-                animation.B_turn = true;
-
-            if(glfwGetKey(window, keys.l_turn) == GLFW_PRESS && !animation.isRotating())
-                animation.L_turn = true;
-
-            if(animation.isRotating()){
-                targetRotationAngle = glm::radians(90.0f * numOfTurns * inverse);
-                /*
-                for(auto& obj : gameObjects){
-                    std::cout << obj.getId() << " # "
-                        << obj.transform.quatRotation.w << ", "
-                        << obj.transform.quatRotation.x << ", "
-                        << obj.transform.quatRotation.y << ", "
-                        << obj.transform.quatRotation.z << " - "
-                        << obj.transform.translation.x << ", "
-                        << obj.transform.translation.y << ", "
-                        << obj.transform.translation.z << std::endl;
+            for(auto& keyMap : keymaps){
+                if(glfwGetKey(window, keyMap.key) == GLFW_PRESS) {
+                    *keyMap.turn = true;
+                    targetRotationAngle = glm::radians(90.0f * numOfTurns * inverse);
+                    break;
                 }
-                */
             }
         }
     }
 
-    if(animation.U_turn){ rotateAroundAxis('y','U',1,dt,gameObjects); }
-    if(animation.D_turn){ rotateAroundAxis('y','D',-1,dt,gameObjects); }
-    if(animation.F_turn){ rotateAroundAxis('z','F',1,dt,gameObjects); }
-    if(animation.B_turn){ rotateAroundAxis('z','B',-1,dt,gameObjects); }
-    if(animation.R_turn){ rotateAroundAxis('x','R',-1,dt,gameObjects); }
-    if(animation.L_turn){ rotateAroundAxis('x','L',1,dt,gameObjects); }
+    for(auto &keyMap : keymaps){
+        if (*keyMap.turn)
+            rotateAroundAxis(keyMap, dt, gameObjects);
+    }
 }
 
-void Controller::rotateAroundAxis(char axis, char side, int sign, float dt, std::vector<CubeObj> &gameObjects){
+void Controller::rotateAroundAxis(KeyMapData keyMap, float dt, std::vector<CubeObj> &gameObjects){
     oldRotationAngle = currentRotationAngle;
     currentRotationAngle = glm::mix(currentRotationAngle, targetRotationAngle, rotationSpeed * dt);
 
+    auto faceIds = cube.getFaceId(keyMap.side);
     if (glm::epsilonEqual(currentRotationAngle, targetRotationAngle, 0.01f)) {
-        for(int objId : cube.getFaceId(side)) {
-            auto& obj = gameObjects[objId];
-            obj.rotate(axis, (sign * (targetRotationAngle - currentRotationAngle)), true);
-            obj.transform.coordSystem.rotate(axis, sign * targetRotationAngle);
-        }
+            // Use std::for_each with std::execution::par to parallelize the loop
+        std::for_each(std::execution::par, faceIds.begin(), faceIds.end(), [&](int objId) {
+            auto& obj = gameObjects[objId]; obj.rotate(keyMap.axis, (keyMap.sign * (targetRotationAngle - currentRotationAngle)), true);
+            obj.transform.coordSystem.rotate(keyMap.axis, keyMap.sign * targetRotationAngle);
+        });
 
         currentRotationAngle = 0.0f;
-        auto sideStr = std::string(1, side);
+        auto sideStr = std::string(1, keyMap.side);
         if(numOfTurns == 2) cube.turn(sideStr + "2");
         else if(inverse == -1) cube.turn(sideStr + "'");
         else cube.turn(sideStr);
 
-        if(side == 'U') animation.U_turn = false;
-        if(side == 'D') animation.D_turn = false;
-        if(side == 'F') animation.F_turn = false;
-        if(side == 'R') animation.R_turn = false;
-        if(side == 'B') animation.B_turn = false;
-        if(side == 'L') animation.L_turn = false;
+        *keyMap.turn = false;
     } else {
-        for (int objId : cube.getFaceId(side)) {
-            gameObjects[objId].rotate(axis, (sign * (currentRotationAngle - oldRotationAngle)), false);
-        }
+        // Use std::for_each with std::execution::par to parallelize the loop
+        std::for_each(std::execution::par, faceIds.begin(), faceIds.end(), [&](int objId) {
+            gameObjects[objId].rotate(keyMap.axis, (keyMap.sign * (currentRotationAngle - oldRotationAngle)), false);
+        });
+    }
+}
+
+std::optional<KeyMapData> Controller::getMap(char side)
+{
+    auto it = std::find_if(keymaps.begin(), keymaps.end(), [side](const KeyMapData &keymap)
+                           { return keymap.side == side; });
+    if (it != keymaps.end())
+    {
+        return *it;
+    }
+    else
+    {
+        return std::nullopt;
     }
 }
 
@@ -173,12 +175,8 @@ void Controller::solveCube(){
                 numOfTurns = (turn[1] == '2') ? 2 : 1;
 
                 char move = turn[0];
-                if(move == 'U') animation.U_turn = true;
-                if(move == 'D') animation.D_turn = true;
-                if(move == 'F') animation.F_turn = true;
-                if(move == 'R') animation.R_turn = true;
-                if(move == 'B') animation.B_turn = true;
-                if(move == 'L') animation.L_turn = true;
+                auto map = this->getMap(move);
+                *map->turn = true;
 
                 targetRotationAngle = glm::radians(90.0f * numOfTurns * inverse);
                 /*

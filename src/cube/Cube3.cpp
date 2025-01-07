@@ -3,6 +3,7 @@
 #include <vector>
 #include <ranges>
 #include <algorithm>
+#include <execution>
 
 Cube3::Cube3(){
     top_side = new Side(TOP_SIDE, 3 ,YELLOW, {2, 11, 19, 1, 10, 18, 0, 9, 17}, [this](Direction dir) { this->u_turn(dir); });
@@ -14,170 +15,179 @@ Cube3::Cube3(){
     sides = {top_side, right_side, front_side, bottom_side, left_side, back_side};
 }
 
-void Cube3::u_turn(Direction direction){
+void Cube3::u_turn(Direction direction)
+{
     /* make a copy */
-    Cubie front[3],right[3],back[3],left[3];
-    for(int i = 0;i < 3;i++){
+    Cubie front[3], right[3], back[3], left[3];
+    for (int i = 0; i < 3; i++)
+    {
         front[i] = front_side->cubie[i];
         right[i] = right_side->cubie[i];
         back[i] = back_side->cubie[i];
         left[i] = left_side->cubie[i];
-    }
-    /* depending of the direction assign the new cubie */
-    if(direction == CLOCKWISE){
-        for(int i = 0;i < 3;i++){
+        /* depending on the direction assign the new cubie */
+        switch (direction)
+        {
+        default:
+        case CLOCKWISE:
             front_side->cubie[i] = right[i];
             right_side->cubie[i] = back[i];
             back_side->cubie[i] = left[i];
             left_side->cubie[i] = front[i];
-        }
-    }
-    if(direction == ANTICLOCKWISE){
-        for(int i = 0;i < 3;i++){
+            break;
+        case ANTICLOCKWISE:
             front_side->cubie[i] = left[i];
             right_side->cubie[i] = front[i];
             back_side->cubie[i] = right[i];
             left_side->cubie[i] = back[i];
+            break;
         }
     }
 }
 
-void Cube3::d_turn(Direction direction){
+void Cube3::d_turn(Direction direction)
+{
     /* make a copy */
-    Cubie front[3],right[3],back[3],left[3];
-    for(int i = 6;i < 9;i++){
-        front[i-6] = front_side->cubie[i];
-        right[i-6] = right_side->cubie[i];
-        back[i-6] = back_side->cubie[i];
-        left[i-6] = left_side->cubie[i];
-    }
-    /* depending of the direction assign the new cubie */
-    if(direction == CLOCKWISE){
-        for(int i = 6;i < 9;i++){
-            front_side->cubie[i] = left[i-6];
-            right_side->cubie[i] = front[i-6];
-            back_side->cubie[i] = right[i-6];
-            left_side->cubie[i] = back[i-6];
-        }
-    }
-    if(direction == ANTICLOCKWISE){
-        for(int i = 6;i < 9;i++){
-            front_side->cubie[i] = right[i-6];
-            right_side->cubie[i] = back[i-6];
-            back_side->cubie[i] = left[i-6];
-            left_side->cubie[i] = front[i-6];
+    Cubie front[3], right[3], back[3], left[3];
+    for (int i = 6; i < 9; i++)
+    {
+        int shiftedIindex = i-6;
+        front[shiftedIindex] = front_side->cubie[i];
+        right[shiftedIindex] = right_side->cubie[i];
+        back[shiftedIindex] = back_side->cubie[i];
+        left[shiftedIindex] = left_side->cubie[i];
+        /* depending on the direction assign the new cubie */
+        switch (direction)
+        {
+        default:
+        case CLOCKWISE:
+            front_side->cubie[i] = left[shiftedIindex];
+            right_side->cubie[i] = front[shiftedIindex];
+            back_side->cubie[i] = right[shiftedIindex];
+            left_side->cubie[i] = back[shiftedIindex];
+            break;
+        case ANTICLOCKWISE:
+            front_side->cubie[i] = right[shiftedIindex];
+            right_side->cubie[i] = back[shiftedIindex];
+            back_side->cubie[i] = left[shiftedIindex];
+            left_side->cubie[i] = front[shiftedIindex];
+            break;
         }
     }
 }
 
-void Cube3::f_turn(Direction direction){
+void Cube3::f_turn(Direction direction)
+{
     /* make a copy */
-    Cubie top[3],right[3],bottom[3],left[3];
-    for(int i = 0;i < 3;i++){
-        top[i] = top_side->cubie[6+i];
-        right[i] = right_side->cubie[i*3];
-        bottom[i] = bottom_side->cubie[2-i];
-        left[i] = left_side->cubie[8-i*3];
-    }
-    /* depending of the direction assign the new cubie */
-    if(direction == CLOCKWISE){
-        for(int i = 0;i < 3;i++){
-            top_side->cubie[6+i] = left[i];
-            right_side->cubie[i*3] = top[i];
-            bottom_side->cubie[2-i] = right[i];
-            left_side->cubie[8-i*3] = bottom[i];
-        }
-    }
-    if(direction == ANTICLOCKWISE){
-        for(int i = 0;i < 3;i++){
-            top_side->cubie[6+i] = right[i];
-            right_side->cubie[i*3] = bottom[i];
-            bottom_side->cubie[2-i] = left[i];
-            left_side->cubie[8-i*3] = top[i];
+    Cubie top[3], right[3], bottom[3], left[3];
+    for (int i = 0; i < 3; i++)
+    {
+        top[i] = top_side->cubie[6 + i];
+        right[i] = right_side->cubie[i * 3];
+        bottom[i] = bottom_side->cubie[2 - i];
+        left[i] = left_side->cubie[8 - i * 3];
+        /* depending on the direction assign the new cubie */
+        switch (direction)
+        {
+        default:
+        case CLOCKWISE:
+            top_side->cubie[6 + i] = left[i];
+            right_side->cubie[i * 3] = top[i];
+            bottom_side->cubie[2 - i] = right[i];
+            left_side->cubie[8 - i * 3] = bottom[i];
+            break;
+        case ANTICLOCKWISE:
+            top_side->cubie[6 + i] = right[i];
+            right_side->cubie[i * 3] = bottom[i];
+            bottom_side->cubie[2 - i] = left[i];
+            left_side->cubie[8 - i * 3] = top[i];
+            break;
         }
     }
 }
 
-void Cube3::r_turn(Direction direction){
-    Cubie top[3],back[3],bottom[3],front[3];
-    for(int i = 2;i < 9;i=i+3){
-        int x = (i - 2)/3;
+void Cube3::r_turn(Direction direction)
+{
+    Cubie top[3], back[3], bottom[3], front[3];
+    for (int i = 2; i < 9; i += 3)
+    {
+        int x = (i - 2) / 3;
         top[x] = top_side->cubie[i];
         front[x] = front_side->cubie[i];
         bottom[x] = bottom_side->cubie[i];
-        back[x] = back_side->cubie[8-i];
-    }
-    if(direction == CLOCKWISE){
-        for(int i = 2;i < 9;i=i+3){
-            int x = (i - 2)/3;
+        back[x] = back_side->cubie[8 - i];
+        switch (direction)
+        {
+        default:
+        case CLOCKWISE:
             top_side->cubie[i] = front[x];
             front_side->cubie[i] = bottom[x];
             bottom_side->cubie[i] = back[x];
-            back_side->cubie[8-i] = top[x];
-        }
-    }
-    if(direction == ANTICLOCKWISE){
-        for(int i = 2;i < 9;i=i+3){
-            int x = (i - 2)/3;
+            back_side->cubie[8 - i] = top[x];
+            break;
+        case ANTICLOCKWISE:
             top_side->cubie[i] = back[x];
             front_side->cubie[i] = top[x];
             bottom_side->cubie[i] = front[x];
-            back_side->cubie[8-i] = bottom[x];
+            back_side->cubie[8 - i] = bottom[x];
+            break;
         }
     }
 }
 
-void Cube3::b_turn(Direction direction){
-    Cubie top[3],right[3],bottom[3],left[3];
-    for(int i = 0;i < 3;i++){
+void Cube3::b_turn(Direction direction)
+{
+    Cubie top[3], right[3], bottom[3], left[3];
+    for (int i = 0; i < 3; i++)
+    {
         top[i] = top_side->cubie[i];
-        right[i] = right_side->cubie[2+(i*3)];
-        bottom[i] = bottom_side->cubie[8-i];
-        left[i] = left_side->cubie[6-(i*3)];
-    }
-    if(direction == CLOCKWISE){
-        for(int i = 0;i < 3;i++){
+        right[i] = right_side->cubie[2 + (i * 3)];
+        bottom[i] = bottom_side->cubie[8 - i];
+        left[i] = left_side->cubie[6 - (i * 3)];
+        switch (direction)
+        {
+        case CLOCKWISE:
+        default:
             top_side->cubie[i] = right[i];
-            right_side->cubie[2+(i*3)] = bottom[i];
-            bottom_side->cubie[8-i] = left[i];
-            left_side->cubie[6-(i*3)] = top[i];
-        }
-    }
-    if(direction == ANTICLOCKWISE){
-        for(int i = 0;i < 3;i++){
+            right_side->cubie[2 + (i * 3)] = bottom[i];
+            bottom_side->cubie[8 - i] = left[i];
+            left_side->cubie[6 - (i * 3)] = top[i];
+            break;
+        case ANTICLOCKWISE:
             top_side->cubie[i] = left[i];
-            right_side->cubie[2+(i*3)] = top[i];
-            bottom_side->cubie[8-i] = right[i];
-            left_side->cubie[6-(i*3)] = bottom[i];
+            right_side->cubie[2 + (i * 3)] = top[i];
+            bottom_side->cubie[8 - i] = right[i];
+            left_side->cubie[6 - (i * 3)] = bottom[i];
+            break;
         }
     }
 }
 
-void Cube3::l_turn(Direction direction){
-    Cubie top[3],back[3],bottom[3],front[3];
-    for(int i = 0;i < 7;i=i+3){
-        int x = i/3;
+void Cube3::l_turn(Direction direction)
+{
+    Cubie top[3], back[3], bottom[3], front[3];
+    for (int i = 0; i < 7; i += 3)
+    {
+        int x = i / 3;
         top[x] = top_side->cubie[i];
         front[x] = front_side->cubie[i];
         bottom[x] = bottom_side->cubie[i];
-        back[x] = back_side->cubie[8-i];
-    }
-    if(direction == CLOCKWISE){
-        for(int i = 0;i < 7;i=i+3){
-            int x = i/3;
+        back[x] = back_side->cubie[8 - i];
+        switch (direction)
+        {
+        default:
+        case CLOCKWISE:
             top_side->cubie[i] = back[x];
             front_side->cubie[i] = top[x];
             bottom_side->cubie[i] = front[x];
-            back_side->cubie[8-i] = bottom[x];
-        }
-    }
-    if(direction == ANTICLOCKWISE){
-        for(int i = 0;i < 7;i=i+3){
-            int x = i/3;
+            back_side->cubie[8 - i] = bottom[x];
+            break;
+        case ANTICLOCKWISE:
             top_side->cubie[i] = front[x];
             front_side->cubie[i] = bottom[x];
             bottom_side->cubie[i] = back[x];
-            back_side->cubie[8-i] = top[x];
+            back_side->cubie[8 - i] = top[x];
+            break;
         }
     }
 }
@@ -211,15 +221,16 @@ std::string Cube3::state() {
     // Reserve space in the vector to avoid multiple reallocations
     cube3State.reserve(this->sides.size() * 9);
 
-    // Iterate over each side of the cube
-    for (const auto& side : this->sides) {
+    auto processSide = [&cube3State](Side* side){
         // Create a subrange for the first 9 cubies of the current side
         auto cubieRange = std::span(side->cubie, 9);
         // Transform the cubieRange using the function f and append the results to cube3State
         std::ranges::transform(cubieRange, std::back_inserter(cube3State), [](Cubie& cubie) {
             return cubie.getLetter();
         });
-    }
+    };
+
+    std::for_each(std::execution::par, std::begin(this->sides), std::end(this->sides), processSide);
 
     // Convert the vector of characters to a string and return it
     return std::string(cube3State.begin(), cube3State.end());

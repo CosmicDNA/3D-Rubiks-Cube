@@ -7,7 +7,8 @@
     "spirv-tools",
     "shaderc",
     "glfw3",
-    "glm"
+    "glm",
+    "gcem"
   ],
   "builtin-baseline": "4b6c50d962cc20aaa3ef457f8ba683b586263cfb"
 }
